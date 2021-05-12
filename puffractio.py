@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
+from pathlib import Path
 import os
 
 from tqdm import tqdm
@@ -54,7 +55,8 @@ class Challenge:
     def save(self, fname, path='.', upscale=1, flip=0):
         c = self.flip_pixels(npix=flip)
         c = self.upscale(c, upscale)
-        img = PIL.Image.fromarray(c).convert("1")
+        Path(path).mkdir(parents=True, exist_ok=True)
+        img = PIL.Image.fromarray(~c).convert("1") # ~c to avoid inverte colormap
         img.save(os.path.join(path, fname), optimize=True)
 
     def show(self, upscale=1, flip=0):
@@ -158,6 +160,7 @@ class PUFmask:
 
     def save(self, fname, path='.'):
         img = PIL.Image.fromarray(self.mask).convert("1")
+        Path(path).mkdir(parents=True, exist_ok=True)
         img.save(os.path.join(path, fname), optimize=True)
 
     def show(self):
