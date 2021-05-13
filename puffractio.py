@@ -142,15 +142,17 @@ class PUFmask:
             m[draw.disk(p[pidx,], r, shape=m.shape)] = True
         return m
 
-    def add_holes(self, Nadd):
+    def add_holes(self, Nadd, seed=None):
         N = self.Npart + Nadd
         pnew = self.RSA_PBC(N=N, p=self.ppos)
         self.__init__(self.Ngrid, N, self.rpart, self.rexcl, ppos=pnew, seed=self.seed)
 
-    def remove_holes(self, Nrem): # TODO: actually implement seed
-        pnew = self.ppos
+    def remove_holes(self, Nrem, seed=None):
         N = self.Npart - Nrem
-        self.__init__(self.Ngrid, N, self.rpart, self.rexcl, ppos=pnew[:N,])
+        rng = self.rng if seed is None else np.random.default_rng(seed)
+        keep = rng.choice(range(self.Npart), self.Npart - Nrem, replace=False)
+        pnew = self.ppos[keep,]
+        self.__init__(self.Ngrid, N, self.rpart, self.rexcl, ppos=pnew)
 
     def shake(self, sigma): # TODO: would be nice to add a flag to allow overlapped particles or not, and seed?
         dp = self.rng.normal(0, sigma, size=np.shape(self.ppos))
