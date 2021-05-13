@@ -79,7 +79,7 @@ class PUFmask:
             self.ppos = ppos
         else:
             self.ppos = self.RSA_PBC(p=ppos)
-        self.mask = self.generate_mask()
+        self.mask = self.generate()
         self.f, self.fexcl, self.fpix = self.area_fraction()
 
     def area_fraction(self):
@@ -129,7 +129,7 @@ class PUFmask:
         dm = kdt.sparse_distance_matrix(kdt, 2*self.rpart/self.Ngrid) # with respect to rpart!
         return dm.count_nonzero() > 0
 
-    def generate_mask(self, p=None, Ngrid=None, r=None):
+    def generate(self, p=None, Ngrid=None, r=None):
         if p is None:
             p = self.ppos
         if Ngrid is None:
