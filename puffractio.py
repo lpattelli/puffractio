@@ -56,7 +56,7 @@ class Challenge:
         c = self.flip_pixels(npix=flip)
         c = self.upscale(c, upscale)
         Path(path).mkdir(parents=True, exist_ok=True)
-        img = PIL.Image.fromarray(~c).convert("1") # ~c to avoid inverte colormap
+        img = PIL.Image.fromarray(~c).convert("1") # ~c to invert colormap
         img.save(os.path.join(path, fname), optimize=True)
 
     def show(self, upscale=1, flip=0):
@@ -126,7 +126,7 @@ class PUFmask:
 
     def has_overlap(self, boxsize=1):
         kdt = KDTree(self.ppos / self.Ngrid, boxsize=boxsize)
-        dm = kdt.sparse_distance_matrix(kdt, 2*self.rpart/self.Ngrid) # with respect to rpart!
+        dm = kdt.sparse_distance_matrix(kdt, 2*self.rpart/self.Ngrid) # rpart instead of rexcl
         return dm.count_nonzero() > 0
 
     def generate(self, p=None, Ngrid=None, r=None):
@@ -166,4 +166,4 @@ class PUFmask:
 
     def show(self):
         fig, ax = plt.subplots()
-        ax.imshow(~self.mask, cmap='Greys') # note the negation!
+        ax.imshow(~self.mask, cmap='Greys') # ~self.mask to invert colormap
