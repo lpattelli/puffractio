@@ -12,23 +12,23 @@ from skimage import draw
 
 
 class Challenge:
-    def __init__(self, p, q=None, f=0.5, **kwargs):
+    def __init__(self, p, q=None, f=0.5, exact=True, seed=None):
         self.p = p
         self.q = p if q is None else q
         self.f = f
-        self.exact = kwargs.get('exact', True)
-        self.seed = kwargs.get('seed')
+        self.exact = exact
+        self.seed = seed
+        self.rng = np.random.default_rng(self.seed)
         self.challenge = self.generate()
 
     def generate(self):
-        np.random.seed(self.seed)
         p, q, f = self.p, self.q, self.f
         if self.exact:
             c = np.full(p*q, False)
             c[:int(p*q*f)] = True
-            np.random.shuffle(c)
+            self.rng.shuffle(c)
         else:
-            c = np.random.choice([True, False], size=p*q, p=[f, 1-f])
+            c = self.rng.choice([True, False], size=p*q, p=[f, 1-f])
         return c.reshape((p,q))
 
     def upscale(self, c=None, upscale=1):
@@ -40,11 +40,11 @@ class Challenge:
     def flip_pixels(self, c=None, npix=1, seed=None):
         if c is None:
             c = self.challenge
-        np.random.seed(seed)
+        rng = self.rng if seed is None else np.random.default_rng(seed)
         f = c.copy()
         mask = np.full(c.size, False)
         mask[:npix] = True
-        np.random.shuffle(mask)
+        rng.shuffle(mask)
         mask = mask.reshape(c.shape)
         f[mask] = np.logical_not(f[mask])
         return f
@@ -74,6 +74,7 @@ class PUFmask:
         self.rpart = rpart
         self.rexcl = rexcl
         self.seed = seed
+        self.rng = np.random.default_rng(self.seed)
         if ppos is not None and ppos.shape[0] == Npart:
             self.ppos = ppos
         else:
@@ -90,14 +91,12 @@ class PUFmask:
             N = self.Npart
         if r is None:
             r = self.rexcl
-        if seed is None:
-            seed = self.seed
-        np.random.seed(seed)
+        rng = self.rng if seed is None else np.random.default_rng(seed)
         r /= self.Ngrid # go to normalized units
-        p = np.random.rand(1, 2) if (p is None) else p/self.Ngrid
+        p = rng.random((1, 2)) if (p is None) else p/self.Ngrid
         with tqdm(initial=np.size(p, 0), total=N, desc="packing disks") as pbar:
             while np.size(p, 0) < N:
-                pnew = np.random.rand(N, 2)
+                pnew = rng.random((N, 2))
                 pnew = self._remove_overlapping(pnew, r, p, boxsize=1)
                 p = self._remove_overlapping(np.concatenate([p,pnew]), r, boxsize=1)
                 pbar.n = min(N, np.size(p,0)); pbar.refresh()
@@ -151,10 +150,10 @@ class PUFmask:
     def remove_holes(self, Nrem): # TODO: actually implement seed
         pnew = self.ppos
         N = self.Npart - Nrem
-        self.__init__(self.Ngrid, N, self.rpart, self.rexcl, ppos=pnew[:N,], seed=self.seed)
+        self.__init__(self.Ngrid, N, self.rpart, self.rexcl, ppos=pnew[:N,])
 
-    def shake(self, sigma): # TODO: would be nice to add a flag to allow overlapped particles or not
-        dp = np.random.normal(0, sigma, size=np.shape(self.ppos))
+    def shake(self, sigma): # TODO: would be nice to add a flag to allow overlapped particles or not, and seed?
+        dp = self.rng.normal(0, sigma, size=np.shape(self.ppos))
         spos = np.mod(self.ppos + dp, self.Ngrid)
         self.__init__(self.Ngrid, self.Npart, self.rpart, self.rexcl, ppos=spos, seed=self.seed)
 
