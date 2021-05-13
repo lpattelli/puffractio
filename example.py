@@ -2,12 +2,14 @@
 
 import puffractio as pf
 
-PUFgrid = 50
-upscale = 100
-Ngrid = PUFgrid * upscale
+
+#%% Challenges
+
+challenge_grid = 50 # grid size
+upscale = 100       # magnification factor
 
 # only square PUFs are implemented at the moment
-challenge = pf.Challenge(PUFgrid)
+challenge = pf.Challenge(challenge_grid)
 
 # show the generated challenge
 challenge.show(upscale=upscale)
@@ -19,7 +21,9 @@ challenge.save('challenge.png', upscale=upscale)
 # 2 macro-pixels flipped, in a different folder
 challenge.save('challenge_flip2.png', upscale=upscale, flip=2, path='./flipped')
 
+#%% PUFs
 
+Ngrid = challenge_grid * upscale # make a PUF as large as the magnified Challenge
 Npart = 100000
 rpart = 5
 rexcl = 6
