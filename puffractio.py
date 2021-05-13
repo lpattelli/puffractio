@@ -102,12 +102,8 @@ class PUFmask:
                 pbar.n = min(N, np.size(p,0)); pbar.refresh()
         return self.Ngrid*p[:N,]
 
-    def _edge_particles(self, p=None, r=None):
+    def _edge_particles(self, p, r):
         """ expects particle positions in a [0,1] square """
-        if p is None:
-            p = self.ppos
-        if r is None:
-            r = self.rexcl
         p = np.concatenate([p + [ 1, 0], p + [ 1, 1], p + [ 0, 1], p + [-1, 1],
                             p + [-1, 0], p + [-1,-1], p + [ 0,-1], p + [ 1,-1]])
         p = np.delete(p, np.any(p > 1+r, 1), 0)
