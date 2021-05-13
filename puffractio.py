@@ -86,7 +86,7 @@ class PUFmask:
         f = lambda r: self.Npart * np.pi * r**2 / self.Ngrid**2
         return f(self.rpart), f(self.rexcl), np.sum(self.mask)/self.mask.size
 
-    def RSA_PBC(self, N=None, r=None, p=None, seed=None): # TODO: implement some stop mechanism after N attempts
+    def RSA_PBC(self, N=None, r=None, p=None, seed=None):
         if N is None:
             N = self.Npart
         if r is None:
@@ -154,7 +154,7 @@ class PUFmask:
         pnew = self.ppos[keep,]
         self.__init__(self.Ngrid, N, self.rpart, self.rexcl, ppos=pnew)
 
-    def shake(self, sigma): # TODO: would be nice to add a flag to allow overlapped particles or not, and seed?
+    def shake(self, sigma):
         dp = self.rng.normal(0, sigma, size=np.shape(self.ppos))
         spos = np.mod(self.ppos + dp, self.Ngrid)
         self.__init__(self.Ngrid, self.Npart, self.rpart, self.rexcl, ppos=spos, seed=self.seed)
