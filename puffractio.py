@@ -52,6 +52,10 @@ class Challenge:
     def invert(self):
         return np.logical_not(self.challenge)
 
+    def shift(self, sx, sy):
+        self.challenge = np.roll(self.challenge, sx, axis=1) # along "x"
+        self.challenge = np.roll(self.challenge, sy, axis=0) # along "y"
+
     def save(self, fname, path='.', upscale=1, flip=0):
         c = self.flip_pixels(npix=flip)
         c = self.upscale(c, upscale)
@@ -154,6 +158,10 @@ class PUFmask:
         dp = self.rng.normal(0, sigma, size=np.shape(self.ppos))
         spos = np.mod(self.ppos + dp, self.Ngrid)
         self.__init__(self.Ngrid, self.Npart, self.rpart, self.rexcl, ppos=spos, seed=self.seed)
+
+    def shift(self, sx, sy):
+        self.mask = np.roll(self.mask, sx, axis=1) # along "x"
+        self.mask = np.roll(self.mask, sy, axis=0) # along "y"
 
     def save(self, fname, path='.'):
         img = PIL.Image.fromarray(self.mask).convert("1")
