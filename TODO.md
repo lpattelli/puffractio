@@ -8,4 +8,5 @@
 - [ ] PUFmask.RSA_PBC: abort after too many failed attempts
 - [ ] add docstrings
 - [ ] PUFmask.generate: add optional sub-pixel hinting?
+- [ ] create package
 
