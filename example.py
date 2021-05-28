@@ -1,6 +1,7 @@
 # example script
 
 import puffractio as pf
+import numpy as np
 
 #%% Challenges
 
@@ -23,9 +24,12 @@ challenge.show(upscale=upscale)
 #%% PUFs
 
 Ngrid = challenge_grid * upscale # make a PUF as large as the magnified Challenge
-Npart = 72000
+
+f = 0.53
 rpart = 5
 rexcl = 6
+
+Npart = round(f*Ngrid**2 / np.pi / rexcl**2)
 
 # generate, show and save a large PUF to file
 puf = pf.PUFmask(Ngrid, Npart, rpart, rexcl)
@@ -46,3 +50,5 @@ R = pf.Response(challenge, puf, wavelength=0.5, pixelsize=0.1)
 
 speckle = R.propagate(200, 100, 20000)
 speckle.draw()
+
+speckle = np.abs(speckle.u)**2
