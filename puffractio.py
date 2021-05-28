@@ -70,6 +70,30 @@ class Challenge:
         ax.imshow(c, cmap='Greys')
 
 
+from diffractio.scalar_sources_XY import Scalar_source_XY
+
+class Response:
+    def __init__(self, challenge, puf, wavelength, pixelsize=1): # default: 1 micrometer
+        ups = puf.mask.shape[0] // challenge.challenge.shape[0] # warning: assuming square masks...
+        self.challenge = challenge.upscale(upscale=ups)
+        self.puf = puf.mask
+        self.wavelength = wavelength
+        self.pixelsize = pixelsize
+
+    def propagate(self, x, y, z):
+        N, M = self.challenge.shape
+        x0 = np.linspace(-N//2, N//2, N) * self.pixelsize
+        y0 = np.linspace(-M//2, M//2, M) * self.pixelsize
+        u0 = Scalar_source_XY(x=x0, y=y0, wavelength=self.wavelength)
+        u0.plane_wave()
+        u0.u *= self.puf * self.challenge
+        x = -x -x0[-1]
+        y = -y -y0[-1]
+        u0._RS_(z=z, n=1, new_field=False, kind='z', verbose=True, xout=x, yout=y)
+        u0.x = -np.flipud(x0 +x -x0[0])
+        u0.y = -np.flipud(y0 +y -y0[0])
+        return u0
+
 
 class PUFmask:
     def __init__(self, Ngrid, Npart, rpart, rexcl, ppos=None, seed=None):
