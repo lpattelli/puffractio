@@ -49,6 +49,8 @@ puf.show()
 R = pf.Response(challenge, puf, wavelength=0.5, pixelsize=0.1)
 
 speckle = R.propagate(200, 100, 20000)
-speckle.draw()
+# speckle.draw()
+ushrink = R.shrinkby(32)
+ushrink.draw()
 
-speckle = np.abs(speckle.u)**2
+# speckle = np.abs(speckle.u)**2
