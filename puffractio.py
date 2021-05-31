@@ -79,8 +79,9 @@ class Response:
         self.puf = puf.mask
         self.wavelength = wavelength
         self.pixelsize = pixelsize
+        self.uz = None
 
-    def propagate(self, x, y, z):
+    def propagate(self, x, y, z, verbose=True):
         N, M = self.challenge.shape
         x0 = np.linspace(-N//2, N//2, N) * self.pixelsize
         y0 = np.linspace(-M//2, M//2, M) * self.pixelsize
@@ -89,10 +90,10 @@ class Response:
         u0.u *= self.puf * self.challenge
         x = -x -x0[-1]
         y = -y -y0[-1]
-        u0._RS_(z=z, n=1, new_field=False, kind='z', verbose=True, xout=x, yout=y)
-        u0.x = -np.flipud(x0 +x -x0[0])
-        u0.y = -np.flipud(y0 +y -y0[0])
-        return u0
+        self.uz = u0._RS_(z=z, n=1, new_field=True, kind='z', verbose=verbose, xout=x, yout=y)
+        self.uz.x = -np.flipud(x0 +x -x0[0])
+        self.uz.y = -np.flipud(y0 +y -y0[0])
+        return self.uz
 
 
 class PUFmask:
