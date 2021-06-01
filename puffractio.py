@@ -99,12 +99,10 @@ class Response:
     def shrinkby(self, factor):
         u = self.uz.u
         nN, nM = u.shape[0]//factor, u.shape[1]//factor
-        nx, ny = self.uz.x.reshape(nN,-1), self.uz.y.reshape(nM,-1)
+        nx, ny = self.uz.x.reshape(nN,-1).mean(1), self.uz.y.reshape(nM,-1).mean(1)
         sh = nN, factor, nM, factor
         us = Scalar_field_XY(x=nx, y=ny, wavelength=self.wavelength, info="shrunk")
         us.u = u.reshape(sh).mean(-1).mean(1)
-        us.x = nx.mean(1)
-        us.y = ny.mean(1)
         return us
 
 
