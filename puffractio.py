@@ -72,6 +72,8 @@ class Challenge:
 
 from diffractio.scalar_sources_XY import Scalar_source_XY
 from diffractio.scalar_sources_XY import Scalar_field_XY
+from scipy.signal import correlate
+from scipy.optimize import curve_fit
 
 class Response:
     def __init__(self, challenge, puf, wavelength, pixelsize=1): # default: 1 micrometer
@@ -105,6 +107,37 @@ class Response:
         us.u = u.reshape(sh).mean(-1).mean(1)
         return us
 
+    def registerxy(self, f0, fitwidth=20, plotfit=False):
+        f1 = np.abs(self.uz.u)**2 # reference pattern
+        xcorr = correlate((f0-np.mean(f0))/np.std(f0), (f1-np.mean(f1))/np.std(f1), 'full')
+        nxc = xcorr/f0.size
+        dx, dy = np.unravel_index(np.argmax(xcorr), xcorr.shape)
+        x = np.arange(-nxc.shape[0]//2,nxc.shape[0]//2)+1 # for 'full' correlation size
+        xrange = np.arange(dx-fitwidth, dx+fitwidth)
+        yrange = np.arange(dy-fitwidth, dy+fitwidth)
+        X, Y = np.meshgrid(xrange, yrange)
+        ydata = nxc[X,Y] # select window
+        X, Y = np.meshgrid(x[xrange],x[yrange]) # overwrite to actual units
+        p0 = [1, x[dx], x[dy], fitwidth/2, fitwidth/2, 0] # initial guesses
+        popt, _ = curve_fit(self._gauss2d, (X,Y), ydata.ravel(), p0=p0)
+        if plotfit:
+            fig, ax = plt.subplots()
+            ax.imshow(ydata, extent=(X.min(), X.max(), Y.min(), Y.max()), origin='lower')
+            ax.contour(X, Y, self._gauss2d((X,Y), *popt).reshape(X.shape), 8, colors='w')
+            ax.set_xlabel("dy") # rows and colums
+            ax.set_ylabel("dx") # are swapped
+            ax.set_title("cross-correlation peak fit")
+        ps = self.pixelsize
+        return ps*popt[2], ps*popt[1] # rows and columns are swapped
+
+    def _gauss2d(self, xytuple, A, x0, y0, sigmax, sigmay, theta):
+        ''' internal model to fit the cross-correlation peak '''
+        (x, y) = xytuple
+        a = (np.cos(theta)**2)/(2*sigmax**2) + (np.sin(theta)**2)/(2*sigmay**2)
+        b = -(np.sin(2*theta))/(4*sigmax**2) + (np.sin(2*theta))/(4*sigmay**2)
+        c = (np.sin(theta)**2)/(2*sigmax**2) + (np.cos(theta)**2)/(2*sigmay**2)
+        g = A*np.exp( - (a*((x-x0)**2) + 2*b*(x-x0)*(y-y0) + c*((y-y0)**2)))
+        return g.ravel()
 
 
 class PUFmask:
