@@ -107,7 +107,7 @@ class Response:
         us.u = u.reshape(sh).mean(-1).mean(1)
         return us
 
-    def registerxy(self, f0, fitwidth=20, plotfit=False):
+    def registerxy(self, f0, fitwidth=20, thresh=0.8, plotfit=False):
         f1 = np.abs(self.uz.u)**2 # reference pattern
         xcorr = correlate((f0-np.mean(f0))/np.std(f0), (f1-np.mean(f1))/np.std(f1), 'full')
         nxc = xcorr/f0.size
@@ -128,7 +128,9 @@ class Response:
             ax.set_ylabel("dx") # are swapped
             ax.set_title("cross-correlation peak fit")
         ps = self.pixelsize
-        return ps*popt[2], ps*popt[1] # rows and columns are swapped
+        regx = ps*popt[2] if np.abs(popt[2]) > thresh else 0 # a shift below 1 pixel is
+        regy = ps*popt[1] if np.abs(popt[1]) > thresh else 0 # probably not significant
+        return regx, regy
 
     def _gauss2d(self, xytuple, A, x0, y0, sigmax, sigmay, theta):
         ''' internal model to fit the cross-correlation peak '''
