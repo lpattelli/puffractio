@@ -84,18 +84,39 @@ class Response:
         self.pixelsize = pixelsize
         self.uz = None
 
-    def propagate(self, x, y, z, verbose=True):
+    def propagate(self, x, y, z, verbose=True, scaleupby=None):
+        # define source at z=0
         N, M = self.challenge.shape
         x0 = np.linspace(-N//2, N//2, N) * self.pixelsize
         y0 = np.linspace(-M//2, M//2, M) * self.pixelsize
         u0 = Scalar_source_XY(x=x0, y=y0, wavelength=self.wavelength)
         u0.plane_wave()
         u0.u *= self.puf * self.challenge
-        x = -x -x0[-1]
-        y = -y -y0[-1]
-        self.uz = u0._RS_(z=z, n=1, new_field=True, kind='z', verbose=verbose, xout=x, yout=y)
-        self.uz.x = -np.flipud(x0 +x -x0[0])
-        self.uz.y = -np.flipud(y0 +y -y0[0])
+        # define center positions of all tiles
+        if scaleupby is None:
+            scaleupby = 1 # no tiling and rescaling required
+        # if np.ceil(np.log2(scaleupby)) != np.floor(np.log2(scaleupby)):
+        #     raise ValueError('scaleupby should be a power of 2')
+        xc = np.linspace(x-(scaleupby-1)*(N//2)*self.pixelsize, x+(scaleupby-1)*(N//2)*self.pixelsize, scaleupby)
+        yc = np.linspace(y-(scaleupby-1)*(M//2)*self.pixelsize, y+(scaleupby-1)*(M//2)*self.pixelsize, scaleupby)
+        xc, yc = np.meshgrid(xc, yc)
+        Ntiles = xc.size
+        tiles = np.zeros((Ntiles, N, M), dtype=np.complex128)
+        for t in range(Ntiles):
+            xt = - xc[np.unravel_index(t, xc.shape)] - x0[-1]
+            yt = - yc[np.unravel_index(t, yc.shape)] - y0[-1]
+            tiles[t,:,:] = u0._RS_(z=z, n=1, new_field=False, out_matrix=True,
+                                   kind='z', verbose=verbose, xout=xt, yout=yt)
+        u = np.split(tiles,np.arange(scaleupby,Ntiles,scaleupby))
+        u = np.concatenate(np.concatenate(u, axis=1), axis=1)
+        sh = N, scaleupby, M, scaleupby # shrinkby on the fly...
+        u = u.reshape(sh).mean(-1).mean(1)
+        x = -np.flipud(x0*scaleupby + x - x0[0])
+        y = -np.flipud(y0*scaleupby + y - y0[0])
+        self.uz = Scalar_field_XY(x=x, y=y, wavelength=self.wavelength)
+        self.uz.u = u
+        self.uz.x = x
+        self.uz.y = y
         return self.uz
 
     def shrinkby(self, factor):
@@ -134,7 +155,7 @@ class Response:
             ax[1].set_xlabel("dy") # rows and colums
             ax[1].set_ylabel("dx") # are swapped
             ax[1].set_title("cross-correlation peak fit")
-        ps = self.pixelsize
+        ps = self.pixelsize * np.round(np.mean(np.diff(self.uz.x)) / self.pixelsize)
         regx = ps*popt[2] if np.abs(popt[2]) > thresh else 0 # a shift below 1 pixel is
         regy = ps*popt[1] if np.abs(popt[1]) > thresh else 0 # probably not significant
         return regx, regy
