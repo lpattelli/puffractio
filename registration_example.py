@@ -27,7 +27,7 @@ puf = pf.PUFmask(Ngrid, Npart, rpart, rexcl)
 #%% propagate to a target off-axis position
 
 wl = 0.5
-target_xyz = [2*pufsize, 100, 1000] # propagate at target coordinates
+target_xyz = [2*pufsize, pufsize, 1000] # propagate at target coordinates
 
 R0 = pf.Response(challenge, puf, wavelength=wl, pixelsize=pixelsize)
 

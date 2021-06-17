@@ -107,12 +107,15 @@ class Response:
         us.u = u.reshape(sh).mean(-1).mean(1)
         return us
 
-    def registerxy(self, f0, fitwidth=20, thresh=0.8, plotfit=False):
+    def registerxy(self, f0, fitwidth=20, thresh=0.8, plotfit=False, guess=None):
         f1 = np.abs(self.uz.u)**2 # reference pattern
         xcorr = correlate((f0-np.mean(f0))/np.std(f0), (f1-np.mean(f1))/np.std(f1), 'full')
         nxc = xcorr/f0.size
-        dx, dy = np.unravel_index(np.argmax(xcorr), xcorr.shape)
         x = np.arange(-nxc.shape[0]//2,nxc.shape[0]//2)+1 # for 'full' correlation size
+        if guess is None:
+            dx, dy = np.unravel_index(np.argmax(xcorr), xcorr.shape)
+        else:
+            dx, dy = np.argmin(np.abs(x-guess[1])), np.argmin(np.abs(x-guess[0]))
         xrange = np.arange(dx-fitwidth, dx+fitwidth)
         yrange = np.arange(dy-fitwidth, dy+fitwidth)
         X, Y = np.meshgrid(xrange, yrange)
@@ -121,12 +124,16 @@ class Response:
         p0 = [1, x[dx], x[dy], fitwidth/2, fitwidth/2, 0] # initial guesses
         popt, _ = curve_fit(self._gauss2d, (X,Y), ydata.ravel(), p0=p0)
         if plotfit:
-            fig, ax = plt.subplots()
-            ax.imshow(ydata, extent=(X.min(), X.max(), Y.min(), Y.max()), origin='lower')
-            ax.contour(X, Y, self._gauss2d((X,Y), *popt).reshape(X.shape), 8, colors='w')
-            ax.set_xlabel("dy") # rows and colums
-            ax.set_ylabel("dx") # are swapped
-            ax.set_title("cross-correlation peak fit")
+            fig, ax = plt.subplots(1,2)
+            ax[0].imshow(nxc, extent=(x.min(), x.max(), x.min(), x.max()), origin='lower')
+            ax[0].axline((0, x.min()), (0, x.max()), color='w', linewidth=1)
+            ax[0].axline((x.min(), 0), (x.max(), 0), color='w', linewidth=1)
+            ax[0].set_title('full cross-correlation map')
+            ax[1].imshow(ydata, extent=(X.min(), X.max(), Y.min(), Y.max()), origin='lower')
+            ax[1].contour(X, Y, self._gauss2d((X,Y), *popt).reshape(X.shape), 8, colors='w')
+            ax[1].set_xlabel("dy") # rows and colums
+            ax[1].set_ylabel("dx") # are swapped
+            ax[1].set_title("cross-correlation peak fit")
         ps = self.pixelsize
         regx = ps*popt[2] if np.abs(popt[2]) > thresh else 0 # a shift below 1 pixel is
         regy = ps*popt[1] if np.abs(popt[1]) > thresh else 0 # probably not significant
