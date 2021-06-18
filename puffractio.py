@@ -83,30 +83,32 @@ class Response:
         self.wavelength = wavelength
         self.pixelsize = pixelsize
         self.uz = None
+        self.init_source()
 
-    def propagate(self, x, y, z, verbose=True, scaleupby=None):
-        # define source at z=0
+    def init_source(self):
         N, M = self.challenge.shape
         x0 = np.linspace(-N//2, N//2, N) * self.pixelsize
         y0 = np.linspace(-M//2, M//2, M) * self.pixelsize
-        u0 = Scalar_source_XY(x=x0, y=y0, wavelength=self.wavelength)
-        u0.plane_wave()
-        u0.u *= self.puf * self.challenge
+        self.u0 = Scalar_source_XY(x=x0, y=y0, wavelength=self.wavelength)
+        self.u0.plane_wave()
+        self.u0.u *= self.puf * self.challenge
+
+    def propagate(self, x, y, z, verbose=True, scaleupby=None):
+        N, M = self.challenge.shape
+        x0, y0 = self.u0.x, self.u0.y
         # define center positions of all tiles
         if scaleupby is None:
             scaleupby = 1 # no tiling and rescaling required
-        # if np.ceil(np.log2(scaleupby)) != np.floor(np.log2(scaleupby)):
-        #     raise ValueError('scaleupby should be a power of 2')
-        xc = np.linspace(x-(scaleupby-1)*(N//2)*self.pixelsize, x+(scaleupby-1)*(N//2)*self.pixelsize, scaleupby)
-        yc = np.linspace(y-(scaleupby-1)*(M//2)*self.pixelsize, y+(scaleupby-1)*(M//2)*self.pixelsize, scaleupby)
+        hxspan, hyspan = (scaleupby-1)*(N//2)*self.pixelsize, (scaleupby-1)*(M//2)*self.pixelsize
+        xc, yc = np.linspace(x-hxspan, x+hxspan, scaleupby), np.linspace(y-hyspan, y+hyspan, scaleupby)
         xc, yc = np.meshgrid(xc, yc)
         Ntiles = xc.size
         tiles = np.zeros((Ntiles, N, M), dtype=np.complex128)
         for t in range(Ntiles):
             xt = - xc[np.unravel_index(t, xc.shape)] - x0[-1]
             yt = - yc[np.unravel_index(t, yc.shape)] - y0[-1]
-            tiles[t,:,:] = u0._RS_(z=z, n=1, new_field=False, out_matrix=True,
-                                   kind='z', verbose=verbose, xout=xt, yout=yt)
+            tiles[t,:,:] = self.u0._RS_(z=z, n=1, new_field=False, out_matrix=True,
+                                        kind='z', verbose=verbose, xout=xt, yout=yt)
         u = np.split(tiles,np.arange(scaleupby,Ntiles,scaleupby))
         u = np.concatenate(np.concatenate(u, axis=1), axis=1)
         sh = N, scaleupby, M, scaleupby # shrinkby on the fly...
@@ -115,8 +117,6 @@ class Response:
         y = y0*scaleupby + y
         self.uz = Scalar_field_XY(x=x, y=y, wavelength=self.wavelength)
         self.uz.u = u
-        self.uz.x = x
-        self.uz.y = y
         return self.uz
 
     def shrinkby(self, factor):
