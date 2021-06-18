@@ -111,8 +111,8 @@ class Response:
         u = np.concatenate(np.concatenate(u, axis=1), axis=1)
         sh = N, scaleupby, M, scaleupby # shrinkby on the fly...
         u = u.reshape(sh).mean(-1).mean(1)
-        x = -np.flipud(x0*scaleupby + x - x0[0])
-        y = -np.flipud(y0*scaleupby + y - y0[0])
+        x = x0*scaleupby + x
+        y = y0*scaleupby + y
         self.uz = Scalar_field_XY(x=x, y=y, wavelength=self.wavelength)
         self.uz.u = u
         self.uz.x = x
