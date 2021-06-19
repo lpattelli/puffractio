@@ -99,20 +99,22 @@ class Response:
         # define center positions of all tiles
         if scaleupby is None:
             scaleupby = 1 # no tiling and rescaling required
+        if np.floor(np.log2(scaleupby)) != np.ceil(np.log2(scaleupby)):
+            raise ValueError('scaleupby must be a power of 2')
         hxspan, hyspan = (scaleupby-1)*(N//2)*self.pixelsize, (scaleupby-1)*(M//2)*self.pixelsize
         xc, yc = np.linspace(x-hxspan, x+hxspan, scaleupby), np.linspace(y-hyspan, y+hyspan, scaleupby)
         xc, yc = np.meshgrid(xc, yc)
         Ntiles = xc.size
-        tiles = np.zeros((Ntiles, N, M), dtype=np.complex128)
+        sh = N//scaleupby, scaleupby, M//scaleupby, scaleupby
+        tiles = np.zeros((Ntiles, N//scaleupby, M//scaleupby), dtype=np.complex128)
         for t in range(Ntiles):
             xt = - xc[np.unravel_index(t, xc.shape)] - x0[-1]
             yt = - yc[np.unravel_index(t, yc.shape)] - y0[-1]
-            tiles[t,:,:] = self.u0._RS_(z=z, n=1, new_field=False, out_matrix=True,
-                                        kind='z', verbose=verbose, xout=xt, yout=yt)
+            temp = self.u0._RS_(z=z, n=1, new_field=False, out_matrix=True,
+                                kind='z', verbose=verbose, xout=xt, yout=yt)
+            tiles[t,:,:] = temp.reshape(sh).mean(-1).mean(1)
         u = np.split(tiles,np.arange(scaleupby,Ntiles,scaleupby))
         u = np.concatenate(np.concatenate(u, axis=1), axis=1)
-        sh = N, scaleupby, M, scaleupby # shrinkby on the fly...
-        u = u.reshape(sh).mean(-1).mean(1)
         x = x0*scaleupby + x
         y = y0*scaleupby + y
         self.uz = Scalar_field_XY(x=x, y=y, wavelength=self.wavelength)
