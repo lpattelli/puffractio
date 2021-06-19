@@ -2,6 +2,9 @@
 
 import puffractio as pf
 import numpy as np
+import matplotlib.pyplot as plt
+
+plt.close('all')
 
 #%% Challenges
 
@@ -23,7 +26,9 @@ challenge.show(upscale=upscale)
 
 #%% PUFs
 
-Ngrid = challenge_grid * upscale # make a PUF as large as the magnified Challenge
+Ngrid = challenge_grid * upscale
+pixelsize = 0.1
+pufsize = Ngrid * pixelsize
 
 f = 0.53
 rpart = 5
@@ -36,21 +41,21 @@ puf = pf.PUFmask(Ngrid, Npart, rpart, rexcl)
 puf.show()
 # puf.save('puf.png')
 
-# permanently remove 100 holes. the PUF now has only 999900 holes
+# permanently remove 100 holes
 # puf.remove_holes(100)
 # puf.save('puf_m100.png')
 
-# try to add 1100 holes, reaching 101000
+# now try to put 1100 holes back in
 # puf.add_holes(1100)
 # puf.save('puf_p1100.png')
 
 #%%
 
-R = pf.Response(challenge, puf, wavelength=0.5, pixelsize=0.1)
+R = pf.Response(challenge, puf, wavelength=0.5, pixelsize=pixelsize)
 
 speckle = R.propagate(200, 100, 20000)
-# speckle.draw()
+# speckle.draw(reduce_matrix=[1,1])
 ushrink = R.shrinkby(32)
-ushrink.draw()
+ushrink.draw(reduce_matrix=[1,1])
 
 # speckle = np.abs(speckle.u)**2

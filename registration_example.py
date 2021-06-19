@@ -33,7 +33,7 @@ scaleupby = 4
 R0 = pf.Response(challenge, puf, wavelength=wl, pixelsize=pixelsize)
 
 speckle0 = R0.propagate(target_xyz[0], target_xyz[1], target_xyz[2], scaleupby=scaleupby)
-speckle0.draw()
+speckle0.draw(reduce_matrix=[1,1])
 clim = plt.gca().images[-1].get_clim()
 plt.gca().images[-1].set_clim((0, clim[-1]))
 plt.gca().set_title("original speckle")
@@ -44,7 +44,7 @@ puf.shift(101, -57) # this shift is defined in pixel units...
 
 R1 = pf.Response(challenge, puf, wavelength=wl, pixelsize=pixelsize)
 speckle1 = R1.propagate(target_xyz[0], target_xyz[1], target_xyz[2], scaleupby=scaleupby)
-speckle1.draw()
+speckle1.draw(reduce_matrix=[1,1])
 plt.gca().images[-1].set_clim((0, clim[-1])) # use same color axis
 plt.gca().set_title("speckle after PUF shift")
 
@@ -54,6 +54,6 @@ f0 = np.abs(speckle0.u)**2 # reference speckle pattern
 regx, regy = R1.registerxy(f0, plotfit=True, fitwidth=10) # also plotting the xcorr fit
 
 speckle_reg = R1.propagate(target_xyz[0]-regx, target_xyz[1]-regy, target_xyz[2], scaleupby=scaleupby)
-speckle_reg.draw()
+speckle_reg.draw(reduce_matrix=[1,1])
 plt.gca().images[-1].set_clim((0, clim[-1]))
 plt.gca().set_title("registered speckle")
