@@ -82,7 +82,7 @@ class Response:
         self.puf = puf.mask
         self.wavelength = wavelength
         self.pixelsize = pixelsize
-        self.uz = None
+        self.absuz = None
         self.init_source()
 
     def init_source(self):
@@ -106,32 +106,31 @@ class Response:
         xc, yc = np.meshgrid(xc, yc)
         Ntiles = xc.size
         sh = N//scaleupby, scaleupby, M//scaleupby, scaleupby
-        tiles = np.zeros((Ntiles, N//scaleupby, M//scaleupby), dtype=np.complex128)
+        tiles = np.zeros((Ntiles, N//scaleupby, M//scaleupby))
         for t in range(Ntiles):
             xt = - xc[np.unravel_index(t, xc.shape)] - x0[-1]
             yt = - yc[np.unravel_index(t, yc.shape)] - y0[-1]
             temp = self.u0._RS_(z=z, n=1, new_field=False, out_matrix=True,
                                 kind='z', verbose=verbose, xout=xt, yout=yt)
-            tiles[t,:,:] = temp.reshape(sh).mean(-1).mean(1)
-        u = np.split(tiles,np.arange(scaleupby,Ntiles,scaleupby))
-        u = np.concatenate(np.concatenate(u, axis=1), axis=1)
+            tiles[t,:,:] = np.abs(temp).reshape(sh).mean(-1).mean(1) # taking the abs() value !!!
+        absu = np.split(tiles,np.arange(scaleupby,Ntiles,scaleupby))
+        absu = np.concatenate(np.concatenate(absu, axis=1), axis=1)
         x = x0*scaleupby + x
         y = y0*scaleupby + y
-        self.uz = Scalar_field_XY(x=x, y=y, wavelength=self.wavelength)
-        self.uz.u = u
-        return self.uz
+        self.absuz = Scalar_field_XY(x=x, y=y, wavelength=self.wavelength, info="abs field")
+        self.absuz.u = absu
+        return self.absuz
 
     def shrinkby(self, factor):
-        u = self.uz.u
-        nN, nM = u.shape[0]//factor, u.shape[1]//factor
-        nx, ny = self.uz.x.reshape(nN,-1).mean(1), self.uz.y.reshape(nM,-1).mean(1)
+        nN, nM = self.absuz.u.shape[0]//factor, self.absuz.u.shape[1]//factor
+        nx, ny = self.absuz.x.reshape(nN,-1).mean(1), self.absuz.y.reshape(nM,-1).mean(1)
         sh = nN, factor, nM, factor
-        us = Scalar_field_XY(x=nx, y=ny, wavelength=self.wavelength, info="shrunk")
-        us.u = u.reshape(sh).mean(-1).mean(1)
-        return us
+        absus = Scalar_field_XY(x=nx, y=ny, wavelength=self.wavelength, info="abs field (shrunk)")
+        absus.u = self.absuz.u.reshape(sh).mean(-1).mean(1)
+        return absus
 
     def registerxy(self, f0, fitwidth=20, thresh=0.8, plotfit=False, guess=None):
-        f1 = np.abs(self.uz.u)**2 # reference pattern
+        f1 = np.abs(self.absuz.u)**2 # reference pattern
         xcorr = correlate((f0-np.mean(f0))/np.std(f0), (f1-np.mean(f1))/np.std(f1), 'full')
         nxc = xcorr/f0.size
         x = np.arange(-nxc.shape[0]//2,nxc.shape[0]//2)+1 # for 'full' correlation size
@@ -157,7 +156,7 @@ class Response:
             ax[1].set_xlabel("dy") # rows and colums
             ax[1].set_ylabel("dx") # are swapped
             ax[1].set_title("cross-correlation peak fit")
-        ps = self.pixelsize * np.round(np.mean(np.diff(self.uz.x)) / self.pixelsize)
+        ps = self.pixelsize * np.round(np.mean(np.diff(self.absuz.x)) / self.pixelsize)
         regx = ps*popt[2] if np.abs(popt[2]) > thresh else 0 # a shift below 1 pixel is
         regy = ps*popt[1] if np.abs(popt[1]) > thresh else 0 # probably not significant
         return regx, regy
