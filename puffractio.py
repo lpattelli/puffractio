@@ -82,25 +82,22 @@ class Response:
         self.puf = puf.mask
         self.wavelength = wavelength
         self.pixelsize = pixelsize
-        self.absuz = None
-        self.init_source()
-
-    def init_source(self):
         N, M = self.challenge.shape
         x0 = np.linspace(-N//2, N//2, N) * self.pixelsize
         y0 = np.linspace(-M//2, M//2, M) * self.pixelsize
         self.u0 = Scalar_source_XY(x=x0, y=y0, wavelength=self.wavelength)
         self.u0.plane_wave()
         self.u0.u *= self.puf * self.challenge
+        self.absuz = None
 
     def propagate(self, x, y, z, verbose=True, scaleupby=None):
-        N, M = self.challenge.shape
-        x0, y0 = self.u0.x, self.u0.y
-        # define center positions of all tiles
         if scaleupby is None:
             scaleupby = 1 # no tiling and rescaling required
         if np.floor(np.log2(scaleupby)) != np.ceil(np.log2(scaleupby)):
             raise ValueError('scaleupby must be a power of 2')
+        N, M = self.challenge.shape
+        x0, y0 = self.u0.x, self.u0.y
+        # define center positions of all tiles
         hxspan, hyspan = (scaleupby-1)*(N//2)*self.pixelsize, (scaleupby-1)*(M//2)*self.pixelsize
         xc, yc = np.linspace(x-hxspan, x+hxspan, scaleupby), np.linspace(y-hyspan, y+hyspan, scaleupby)
         xc, yc = np.meshgrid(xc, yc)
