@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
+from cv2 import getGaborKernel, filter2D
 from pathlib import Path
 import os
 
@@ -166,6 +167,20 @@ class Response:
         c = (np.sin(theta)**2)/(2*sigmax**2) + (np.cos(theta)**2)/(2*sigmay**2)
         g = A*np.exp( - (a*((x-x0)**2) + 2*b*(x-x0)*(y-y0) + c*((y-y0)**2)))
         return g.ravel()
+
+    def gaborfilter(self, absu, lambd, theta, SpatialFrequencyBandwidth=1, SpatialAspectRatio=0.5):
+        ''' apply gabor filter. partly trying to reproduce MATLAB behavior (but theta is in radians)
+        see also: https://stackoverflow.com/questions/61317974/reproduce-matlabs-imgaborfilt-in-python
+        '''
+        f1 = np.abs(absu.u)**2 # convert to intensity
+        theta *= -1 # MATLAB's gabor runs in the opposite direction
+        sigma, gamma = 0.5 * lambd * SpatialFrequencyBandwidth, SpatialAspectRatio
+        shape = int(1 + 2 * np.ceil(4 * sigma))
+        gf_real = getGaborKernel((shape,shape), sigma, theta, lambd, gamma, psi=0)
+        gf_imag = getGaborKernel((shape,shape), sigma, theta, lambd, gamma, psi=np.pi/2)
+        filt_f1 = filter2D(f1, -1, gf_real) + 1j * filter2D(f1, -1, gf_imag)
+        mag, phase = np.abs(filt_f1), np.angle(filt_f1)
+        return mag, phase
 
 
 class PUFmask:
