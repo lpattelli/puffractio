@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from itertools import product
 import PIL
 from cv2 import getGaborKernel, filter2D
 from pathlib import Path
@@ -31,6 +32,9 @@ class Challenge:
         else:
             c = self.rng.choice([True, False], size=p*q, p=[f, 1-f])
         return c.reshape((p,q))
+
+    def flattened_generator(self):
+        return product([True, False], repeat=self.p*self.q)
 
     def upscale(self, c=None, upscale=1):
         if c is None:
